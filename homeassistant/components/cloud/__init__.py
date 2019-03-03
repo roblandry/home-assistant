@@ -87,7 +87,7 @@ CONFIG_SCHEMA = vol.Schema({
 @callback
 async def async_is_logged_in(hass):
     """Test if user is logged in."""
-    return await hass.data[DOMAIN].is_logged_in
+    return hass.data[DOMAIN].is_logged_in
 
 
 @bind_hass
