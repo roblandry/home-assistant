@@ -182,7 +182,7 @@ async def test_create_cloudhook(hass):
     """Test create cloudhook."""
     assert await async_setup_component(hass, 'cloud', {})
     with patch('homeassistant.components.cloud.cloudhooks.'
-               'CloudHooks.async_create', return_value=mock_coro({
+               'Cloudhooks.async_create', return_value=mock_coro({
                    'yo': 'hey'
                 })) as mock_create:
         result = await hass.components.cloud.async_create_cloudhook('hello')
@@ -195,7 +195,7 @@ async def test_delete_cloudhook(hass):
     """Test delete cloudhook."""
     assert await async_setup_component(hass, 'cloud', {})
     with patch('homeassistant.components.cloud.cloudhooks.'
-               'CloudHooks.async_delete', return_value=mock_coro({
+               'Cloudhooks.async_delete', return_value=mock_coro({
                    'yo': 'hey'
                 })) as mock_delete:
         result = await hass.components.cloud.async_delete_cloudhook('hello')
