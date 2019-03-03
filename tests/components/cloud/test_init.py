@@ -5,6 +5,7 @@ from unittest.mock import patch, MagicMock, mock_open
 
 import pytest
 
+from homeassistant.setup import async_setup_component
 from homeassistant.components import cloud
 from homeassistant.util.dt import utcnow
 
@@ -175,3 +176,29 @@ def test_subscription_not_expired(hass):
             patch('homeassistant.util.dt.utcnow',
                   return_value=utcnow().replace(year=2017, month=11, day=9)):
         assert not cl.subscription_expired
+
+
+async def test_create_cloudhook(hass):
+    """Test create cloudhook."""
+    assert await async_setup_component(hass, 'cloud', {})
+    with patch('homeassistant.components.cloud.cloudhooks.'
+               'CloudHooks.async_create', return_value=mock_coro({
+                   'yo': 'hey'
+                })) as mock_create:
+        result = await hass.components.cloud.async_create_cloudhook('hello')
+
+    assert result == {'yo': 'hey'}
+    assert len(mock_create.mock_calls) == 1
+
+
+async def test_delete_cloudhook(hass):
+    """Test delete cloudhook."""
+    assert await async_setup_component(hass, 'cloud', {})
+    with patch('homeassistant.components.cloud.cloudhooks.'
+               'CloudHooks.async_delete', return_value=mock_coro({
+                   'yo': 'hey'
+                })) as mock_delete:
+        result = await hass.components.cloud.async_delete_cloudhook('hello')
+
+    assert result == {'yo': 'hey'}
+    assert len(mock_delete.mock_calls) == 1
