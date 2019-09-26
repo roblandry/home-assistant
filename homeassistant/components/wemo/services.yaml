@@ -24,3 +24,13 @@ reset_filter_life:
     entity:
       integration: wemo
       domain: fan
+
+set_timer:
+  description: Set the target timer of WeMo crockpot devices.
+  fields:
+    entity_id:
+      description: Names of the WeMo Crockpot entities (1 or more entity_ids are required).
+      example: "switch.crock_pot_r_slow_cooker_high"
+    target_time:
+      description: Target time (in minutes). This is a integer value between 0 and 100.
+      example: 60
