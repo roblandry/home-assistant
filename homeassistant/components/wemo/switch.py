@@ -21,6 +21,11 @@ ATTR_SENSOR_STATE = "sensor_state"
 ATTR_SWITCH_MODE = "switch_mode"
 ATTR_CURRENT_STATE_DETAIL = "state_detail"
 ATTR_COFFEMAKER_MODE = "coffeemaker_mode"
+ATTR_CROCKPOT_MODE = "crockpot_mode"
+ATTR_CROCKPOT_TIME = "crockpot_time"
+ATTR_CROCKPOT_COOKEDTIME = "crockpot_cookedtime"
+ATTR_CROCKPOT_TIMESTAMP = "crockpot_timestamp"
+
 
 MAKER_SWITCH_MOMENTARY = "momentary"
 MAKER_SWITCH_TOGGLE = "toggle"
@@ -60,6 +65,7 @@ class WemoSwitch(SwitchDevice):
         self.insight_params = None
         self.maker_params = None
         self.coffeemaker_mode = None
+        self.crockpot_params = None
         self._state = None
         self._mode_string = None
         self._available = True
@@ -117,7 +123,11 @@ class WemoSwitch(SwitchDevice):
             else:
                 attr[ATTR_SWITCH_MODE] = MAKER_SWITCH_TOGGLE
 
-        if self.insight_params or (self.coffeemaker_mode is not None):
+        if (
+            self.insight_params
+            or (self.coffeemaker_mode is not None)
+            or (self.crockpot_params is not None)
+        ):
             attr[ATTR_CURRENT_STATE_DETAIL] = self.detail_state
 
         if self.insight_params:
@@ -130,6 +140,16 @@ class WemoSwitch(SwitchDevice):
 
         if self.coffeemaker_mode is not None:
             attr[ATTR_COFFEMAKER_MODE] = self.coffeemaker_mode
+
+        if self.crockpot_params is not None:
+            attr[ATTR_CROCKPOT_MODE] = self.crockpot_params["mode"]
+            attr[ATTR_CROCKPOT_TIME] = self.crockpot_params["time"]
+            attr[ATTR_CROCKPOT_COOKEDTIME] = self.crockpot_params["cookedTime"]
+            t = datetime.fromtimestamp(float(self.crockpot_params["timeStamp"]))
+            attr[ATTR_CROCKPOT_TIMESTAMP] = t.strftime("%Y-%m-%d %H:%M:%S")
+            # attr[ATTR_CROCKPOT_TIMESTAMP] = time.strftime("%Z - %Y/%m/%d, %H:%M:%S", time.localtime(self.crockpot_params["timeStamp"]))
+
+        # _LOGGER.debug(f"Attr: {attr}")
 
         return attr
 
@@ -158,6 +178,8 @@ class WemoSwitch(SwitchDevice):
     def detail_state(self):
         """Return the state of the device."""
         if self.coffeemaker_mode is not None:
+            return self._mode_string
+        if self.crockpot_params is not None:
             return self._mode_string
         if self.insight_params:
             standby_state = int(self.insight_params["state"])
@@ -188,7 +210,10 @@ class WemoSwitch(SwitchDevice):
 
     def turn_on(self, **kwargs):
         """Turn the switch on."""
-        self.wemo.on()
+        if self._model_name == "Crockpot":
+            self.wemo.set_state(50)  # 50 = warm
+        else:
+            self.wemo.on()
 
     def turn_off(self, **kwargs):
         """Turn the switch off."""
@@ -239,6 +264,9 @@ class WemoSwitch(SwitchDevice):
                 self.maker_params = self.wemo.maker_params
             elif self._model_name == "CoffeeMaker":
                 self.coffeemaker_mode = self.wemo.mode
+                self._mode_string = self.wemo.mode_string
+            elif self._model_name == "Crockpot":
+                self.crockpot_params = self.wemo.attributes
                 self._mode_string = self.wemo.mode_string
 
             if not self._available:

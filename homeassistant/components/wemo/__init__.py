@@ -25,6 +25,7 @@ WEMO_MODEL_DISPATCH = {
     "Motion": "binary_sensor",
     "Sensor": "binary_sensor",
     "Socket": "switch",
+    "CrockPot": "switch",
 }
 
 SUBSCRIPTION_REGISTRY = None
@@ -173,6 +174,11 @@ async def async_setup_entry(hass, entry):
                     d[1] for d in devices if d[1].serialnumber == device.serialnumber
                 ]:
                     devices.append((setup_url_for_device(device), device))
+
+        # Needed?
+        if not device:
+            _LOGGER.critical(f"Failed to get WeMo device: {host}:{port}.")
+            return False
 
         for url, device in devices:
             _LOGGER.debug("Adding WeMo device at %s:%i", device.host, device.port)
