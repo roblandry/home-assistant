@@ -39,6 +39,7 @@ WEMO_MODEL_DISPATCH = {
     "OutdoorPlug": [Platform.SWITCH],
     "Sensor": [Platform.BINARY_SENSOR],
     "Socket": [Platform.SWITCH],
+    "CrockPot": [Platform.SWITCH],
 }
 
 _LOGGER = logging.getLogger(__name__)
