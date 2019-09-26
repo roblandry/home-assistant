@@ -34,6 +34,8 @@ WEMO_ON = 1
 WEMO_OFF = 0
 WEMO_STANDBY = 8
 
+CROCKPOT_SWITCHES = {"Warm": 50, "Low": 51, "High": 52}
+
 
 def setup_platform(hass, config, add_entities, discovery_info=None):
     """Set up discovered WeMo switches."""
@@ -53,7 +55,11 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
             raise PlatformNotReady
 
         if device:
-            add_entities([WemoSwitch(device)])
+            if device.model_name == "Crockpot":
+                for theSwitch in CROCKPOT_SWITCHES:
+                    add_entities([WemoCrockpotSwitch(device, theSwitch)])
+            else:
+                add_entities([WemoSwitch(device)])
 
 
 class WemoSwitch(SwitchDevice):
@@ -65,7 +71,6 @@ class WemoSwitch(SwitchDevice):
         self.insight_params = None
         self.maker_params = None
         self.coffeemaker_mode = None
-        self.crockpot_params = None
         self._state = None
         self._mode_string = None
         self._available = True
@@ -123,11 +128,7 @@ class WemoSwitch(SwitchDevice):
             else:
                 attr[ATTR_SWITCH_MODE] = MAKER_SWITCH_TOGGLE
 
-        if (
-            self.insight_params
-            or (self.coffeemaker_mode is not None)
-            or (self.crockpot_params is not None)
-        ):
+        if self.insight_params or (self.coffeemaker_mode is not None):
             attr[ATTR_CURRENT_STATE_DETAIL] = self.detail_state
 
         if self.insight_params:
@@ -140,16 +141,6 @@ class WemoSwitch(SwitchDevice):
 
         if self.coffeemaker_mode is not None:
             attr[ATTR_COFFEMAKER_MODE] = self.coffeemaker_mode
-
-        if self.crockpot_params is not None:
-            attr[ATTR_CROCKPOT_MODE] = self.crockpot_params["mode"]
-            attr[ATTR_CROCKPOT_TIME] = self.crockpot_params["time"]
-            attr[ATTR_CROCKPOT_COOKEDTIME] = self.crockpot_params["cookedTime"]
-            t = datetime.fromtimestamp(float(self.crockpot_params["timeStamp"]))
-            attr[ATTR_CROCKPOT_TIMESTAMP] = t.strftime("%Y-%m-%d %H:%M:%S")
-            # attr[ATTR_CROCKPOT_TIMESTAMP] = time.strftime("%Z - %Y/%m/%d, %H:%M:%S", time.localtime(self.crockpot_params["timeStamp"]))
-
-        # _LOGGER.debug(f"Attr: {attr}")
 
         return attr
 
@@ -178,8 +169,6 @@ class WemoSwitch(SwitchDevice):
     def detail_state(self):
         """Return the state of the device."""
         if self.coffeemaker_mode is not None:
-            return self._mode_string
-        if self.crockpot_params is not None:
             return self._mode_string
         if self.insight_params:
             standby_state = int(self.insight_params["state"])
@@ -210,10 +199,7 @@ class WemoSwitch(SwitchDevice):
 
     def turn_on(self, **kwargs):
         """Turn the switch on."""
-        if self._model_name == "Crockpot":
-            self.wemo.set_state(50)  # 50 = warm
-        else:
-            self.wemo.on()
+        self.wemo.on()
 
     def turn_off(self, **kwargs):
         """Turn the switch off."""
@@ -265,9 +251,162 @@ class WemoSwitch(SwitchDevice):
             elif self._model_name == "CoffeeMaker":
                 self.coffeemaker_mode = self.wemo.mode
                 self._mode_string = self.wemo.mode_string
-            elif self._model_name == "Crockpot":
-                self.crockpot_params = self.wemo.attributes
-                self._mode_string = self.wemo.mode_string
+
+            if not self._available:
+                _LOGGER.info("Reconnected to %s", self.name)
+                self._available = True
+        except AttributeError as err:
+            _LOGGER.warning("Could not update status for %s (%s)", self.name, err)
+            self._available = False
+
+
+class WemoCrockpotSwitch(SwitchDevice):
+    """Representation of a WeMo Crockpot switch."""
+
+    def __init__(self, device, theSwitch):
+        """Initialize the WeMo switch."""
+        self.wemo = device
+        self._theSwitch = theSwitch
+        self.crockpot_params = None
+        self._state = None
+        self._mode_string = None
+        self._available = True
+        self._update_lock = None
+        self._model_name = self.wemo.model_name
+        self._name = self.wemo.name
+        self._serialnumber = self.wemo.serialnumber
+
+    def _subscription_callback(self, _device, _type, _params):
+        """Update the state by the Wemo device."""
+        _LOGGER.info("Subscription update for %s", self.name)
+        updated = self.wemo.subscription_update(_type, _params)
+        self.hass.add_job(self._async_locked_subscription_callback(not updated))
+
+    async def _async_locked_subscription_callback(self, force_update):
+        """Handle an update from a subscription."""
+        # If an update is in progress, we don't do anything
+        if self._update_lock.locked():
+            return
+
+        await self._async_locked_update(force_update)
+        self.async_schedule_update_ha_state()
+
+    @property
+    def unique_id(self):
+        """Return the ID of this WeMo switch."""
+        _temp = self._serialnumber + "-" + str(CROCKPOT_SWITCHES[self._theSwitch])
+        # _LOGGER.debug(f"unique_id: {_temp}")
+        return _temp
+
+    @property
+    def name(self):
+        """Return the name of the switch if any."""
+        _temp = self._name + " " + self._theSwitch
+        # _LOGGER.debug(f"name: {_temp}")
+        return _temp
+
+    @property
+    def device_info(self):
+        """Return the device info."""
+        return {"name": self._name, "identifiers": {(WEMO_DOMAIN, self._serialnumber)}}
+
+    @property
+    def device_state_attributes(self):
+        """Return the state attributes of the device."""
+        attr = {}
+
+        if self.crockpot_params:
+            attr[ATTR_CURRENT_STATE_DETAIL] = self.detail_state
+
+        if self.crockpot_params is not None:
+            attr[ATTR_CROCKPOT_MODE] = self.crockpot_params["mode"]
+            attr[ATTR_CROCKPOT_TIME] = self.crockpot_params["time"]
+            attr[ATTR_CROCKPOT_COOKEDTIME] = self.crockpot_params["cookedTime"]
+            t = datetime.fromtimestamp(float(self.crockpot_params["timeStamp"]))
+            attr[ATTR_CROCKPOT_TIMESTAMP] = t.strftime("%Y-%m-%d %H:%M:%S")
+        # _LOGGER.debug(f"Attr: {attr}")
+
+        return attr
+
+    @property
+    def detail_state(self):
+        """Return the state of the device."""
+        if self.crockpot_params is not None:
+            return self._mode_string
+
+    @property
+    def is_on(self):
+        """Return true if switch is on. Standby is on."""
+        # _LOGGER.debug(f"State {self._state}")
+        return self._state
+
+    @property
+    def available(self):
+        """Return true if switch is available."""
+        return self._available
+
+    @property
+    def icon(self):
+        """Return the icon of device based on its type."""
+        if self._model_name == "CoffeeMaker":
+            return "mdi:coffee"
+        return None
+
+    def turn_on(self, **kwargs):
+        """Turn the switch on."""
+        # _LOGGER.debug(f"turn_on: {CROCKPOT_SWITCHES[self._theSwitch]}")
+        inputNumberState = self.hass.states.get("input_number.wemo_crockpot_time")
+        if inputNumberState:
+            inputNumberState = int(float(inputNumberState.state))
+        # _LOGGER.debug(f"Input Number: {inputNumberState}")
+        self.wemo.set_state(int(CROCKPOT_SWITCHES[self._theSwitch]), inputNumberState)
+
+    def turn_off(self, **kwargs):
+        """Turn the switch off."""
+        self.wemo.off()
+
+    async def async_added_to_hass(self):
+        """Wemo switch added to HASS."""
+        # Define inside async context so we know our event loop
+        self._update_lock = asyncio.Lock()
+
+        registry = SUBSCRIPTION_REGISTRY
+        await self.hass.async_add_job(registry.register, self.wemo)
+        registry.on(self.wemo, None, self._subscription_callback)
+
+    async def async_update(self):
+        """Update WeMo state.
+
+        Wemo has an aggressive retry logic that sometimes can take over a
+        minute to return. If we don't get a state after 5 seconds, assume the
+        Wemo switch is unreachable. If update goes through, it will be made
+        available again.
+        """
+        # If an update is in progress, we don't do anything
+        if self._update_lock.locked():
+            return
+
+        try:
+            with async_timeout.timeout(5):
+                await asyncio.shield(self._async_locked_update(True))
+        except asyncio.TimeoutError:
+            _LOGGER.warning("Lost connection to %s", self.name)
+            self._available = False
+
+    async def _async_locked_update(self, force_update):
+        """Try updating within an async lock."""
+        async with self._update_lock:
+            await self.hass.async_add_job(self._update, force_update)
+
+    def _update(self, force_update):
+        """Update the device state."""
+        try:
+            # Discard returned state. Call to refresh attributes.
+            self._state = self.wemo.get_state(force_update)
+            self._state = self.wemo.mode_string == self._theSwitch
+
+            self.crockpot_params = self.wemo.attributes
+            self._mode_string = self.wemo.mode_string
 
             if not self._available:
                 _LOGGER.info("Reconnected to %s", self.name)
