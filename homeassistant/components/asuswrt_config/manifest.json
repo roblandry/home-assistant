@@ -1,0 +1,15 @@
+{
+    "domain": "asuswrt_config",
+    "name": "Asuswrt Integration",
+    "config_flow": true,
+    "documentation": "https://www.home-assistant.io/integrations/asuswrt",
+    "requirements": ["aioasuswrt==1.1.22"],
+    "ssdp": {
+        "manufacturer": ["ASUSTek"],
+        "device_type": ["urn:schemas-upnp-org:device:InternetGatewayDevice:1"],
+    },
+    "zeroconf": [],
+    "homekit": {},
+    "dependencies": [],
+    "codeowners": ["@kennedyshead"],
+}

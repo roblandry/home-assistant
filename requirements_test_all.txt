@@ -47,6 +47,7 @@ aio_geojson_nsw_rfs_incidents==0.1
 aioambient==0.3.2
 
 # homeassistant.components.asuswrt
+# homeassistant.components.asuswrt_config
 aioasuswrt==1.1.22
 
 # homeassistant.components.automatic

@@ -12,6 +12,7 @@ FLOWS = [
     "almond",
     "ambiclimate",
     "ambient_station",
+    "asuswrt_config",
     "axis",
     "cast",
     "cert_expiry",
