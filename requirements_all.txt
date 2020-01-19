@@ -1228,6 +1228,9 @@ pyfgt==0.5.1
 # homeassistant.components.fido
 pyfido==2.1.1
 
+# homeassistant.components.fitbark
+pyfitbark==0.0.1
+
 # homeassistant.components.flexit
 pyflexit==0.3
 

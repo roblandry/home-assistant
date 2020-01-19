@@ -23,6 +23,7 @@ FLOWS = [
     "elgato",
     "emulated_roku",
     "esphome",
+    "fitbark",
     "geofency",
     "geonetnz_quakes",
     "geonetnz_volcano",

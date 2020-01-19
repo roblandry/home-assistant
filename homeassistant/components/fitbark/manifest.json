@@ -1,0 +1,9 @@
+{
+  "domain": "fitbark",
+  "name": "FitBark Open API",
+  "config_flow": true,
+  "documentation": "https://www.home-assistant.io/integrations/fitbark",
+  "dependencies": ["http"],
+  "codeowners": ["@roblandry"],
+  "requirements": ["pyfitbark==0.0.1"]
+}
