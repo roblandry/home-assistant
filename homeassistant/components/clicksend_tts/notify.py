@@ -6,15 +6,15 @@ from aiohttp.hdrs import CONTENT_TYPE
 import requests
 import voluptuous as vol
 
+from homeassistant.components.notify import PLATFORM_SCHEMA, BaseNotificationService
 from homeassistant.const import (
     CONF_API_KEY,
     CONF_RECIPIENT,
     CONF_USERNAME,
     CONTENT_TYPE_JSON,
+    HTTP_OK,
 )
 import homeassistant.helpers.config_validation as cv
-
-from homeassistant.components.notify import PLATFORM_SCHEMA, BaseNotificationService
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -88,7 +88,7 @@ class ClicksendNotificationService(BaseNotificationService):
             timeout=TIMEOUT,
         )
 
-        if resp.status_code == 200:
+        if resp.status_code == HTTP_OK:
             return
         obj = json.loads(resp.text)
         response_msg = obj["response_msg"]
@@ -108,7 +108,7 @@ def _authenticate(config):
         timeout=TIMEOUT,
     )
 
-    if resp.status_code != 200:
+    if resp.status_code != HTTP_OK:
         return False
 
     return True

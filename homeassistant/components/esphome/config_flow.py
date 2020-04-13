@@ -2,10 +2,11 @@
 from collections import OrderedDict
 from typing import Optional
 
+from aioesphomeapi import APIClient, APIConnectionError
 import voluptuous as vol
 
-from homeassistant import config_entries
-from homeassistant.helpers import ConfigType
+from homeassistant import config_entries, core
+from homeassistant.helpers.typing import ConfigType
 
 from .entry_data import DATA_KEY, RuntimeEntryData
 
@@ -44,11 +45,12 @@ class EsphomeFlowHandler(config_entries.ConfigFlow):
 
     @property
     def _name(self):
+        # pylint: disable=no-member # https://github.com/PyCQA/pylint/issues/3167
         return self.context.get("name")
 
     @_name.setter
     def _name(self, value):
-        # pylint: disable=unsupported-assignment-operation
+        # pylint: disable=no-member # https://github.com/PyCQA/pylint/issues/3167
         self.context["name"] = value
         self.context["title_placeholders"] = {"name": self._name}
 
@@ -113,6 +115,7 @@ class EsphomeFlowHandler(config_entries.ConfigFlow):
 
         return await self.async_step_discovery_confirm()
 
+    @core.callback
     def _async_get_entry(self):
         return self.async_create_entry(
             title=self._name,
@@ -146,8 +149,6 @@ class EsphomeFlowHandler(config_entries.ConfigFlow):
 
     async def fetch_device_info(self):
         """Fetch device info from API and return any errors."""
-        from aioesphomeapi import APIClient, APIConnectionError
-
         cli = APIClient(self.hass.loop, self._host, self._port, "")
 
         try:
@@ -164,8 +165,6 @@ class EsphomeFlowHandler(config_entries.ConfigFlow):
 
     async def try_login(self):
         """Try logging in to device and return any errors."""
-        from aioesphomeapi import APIClient, APIConnectionError
-
         cli = APIClient(self.hass.loop, self._host, self._port, self._password)
 
         try:

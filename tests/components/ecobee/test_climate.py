@@ -1,8 +1,9 @@
 """The test for the Ecobee thermostat module."""
 import unittest
 from unittest import mock
-import homeassistant.const as const
+
 from homeassistant.components.ecobee import climate as ecobee
+import homeassistant.const as const
 from homeassistant.const import STATE_OFF
 
 
@@ -54,7 +55,7 @@ class TestEcobee(unittest.TestCase):
 
         self.data = mock.Mock()
         self.data.ecobee.get_thermostat.return_value = self.ecobee
-        self.thermostat = ecobee.Thermostat(self.data, 1, False)
+        self.thermostat = ecobee.Thermostat(self.data, 1)
 
     def test_name(self):
         """Test name property."""
@@ -63,7 +64,7 @@ class TestEcobee(unittest.TestCase):
     def test_current_temperature(self):
         """Test current temperature."""
         assert 30 == self.thermostat.current_temperature
-        self.ecobee["runtime"]["actualTemperature"] = 404
+        self.ecobee["runtime"]["actualTemperature"] = const.HTTP_NOT_FOUND
         assert 40.4 == self.thermostat.current_temperature
 
     def test_target_temperature_low(self):

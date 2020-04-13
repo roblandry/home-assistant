@@ -1,16 +1,14 @@
 """Support for Kaiterra Air Quality Sensors."""
 from homeassistant.components.air_quality import AirQualityEntity
-
+from homeassistant.const import CONF_DEVICE_ID, CONF_NAME
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
-from homeassistant.const import CONF_DEVICE_ID, CONF_NAME
-
 from .const import (
-    DOMAIN,
-    ATTR_VOC,
     ATTR_AQI_LEVEL,
     ATTR_AQI_POLLUTANT,
+    ATTR_VOC,
     DISPATCHER_KAITERRA,
+    DOMAIN,
 )
 
 
@@ -83,6 +81,11 @@ class KaiterraAirQuality(AirQualityEntity):
         return self._data("rpm10c")
 
     @property
+    def carbon_dioxide(self):
+        """Return the CO2 (carbon dioxide) level."""
+        return self._data("rco2")
+
+    @property
     def volatile_organic_compounds(self):
         """Return the VOC (Volatile Organic Compounds) level."""
         return self._data("rtvoc")
@@ -110,6 +113,8 @@ class KaiterraAirQuality(AirQualityEntity):
 
     async def async_added_to_hass(self):
         """Register callback."""
-        async_dispatcher_connect(
-            self.hass, DISPATCHER_KAITERRA, self.async_write_ha_state
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass, DISPATCHER_KAITERRA, self.async_write_ha_state
+            )
         )

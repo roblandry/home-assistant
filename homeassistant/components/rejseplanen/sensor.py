@@ -3,21 +3,19 @@ Support for Rejseplanen information from rejseplanen.dk.
 
 For more info on the API see:
 https://help.rejseplanen.dk/hc/en-us/articles/214174465-Rejseplanen-s-API
-
-For more details about this platform, please refer to the documentation at
-https://home-assistant.io/components/sensor.rejseplanen/
 """
+from datetime import datetime, timedelta
 import logging
-from datetime import timedelta, datetime
 from operator import itemgetter
 
+import rjpl
 import voluptuous as vol
 
-import homeassistant.helpers.config_validation as cv
-import homeassistant.util.dt as dt_util
 from homeassistant.components.sensor import PLATFORM_SCHEMA
-from homeassistant.const import CONF_NAME, ATTR_ATTRIBUTION
+from homeassistant.const import ATTR_ATTRIBUTION, CONF_NAME, TIME_MINUTES
+import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entity import Entity
+import homeassistant.util.dt as dt_util
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -132,7 +130,7 @@ class RejseplanenTransportSensor(Entity):
     @property
     def unit_of_measurement(self):
         """Return the unit this state is expressed in."""
-        return "min"
+        return TIME_MINUTES
 
     @property
     def icon(self):
@@ -166,8 +164,6 @@ class PublicTransportData:
 
     def update(self):
         """Get the latest data from rejseplanen."""
-        import rjpl
-
         self.info = []
 
         def intersection(lst1, lst2):

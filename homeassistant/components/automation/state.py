@@ -1,16 +1,22 @@
 """Offer state listening automation rules."""
+from datetime import timedelta
 import logging
+from typing import Dict
 
 import voluptuous as vol
 
 from homeassistant import exceptions
-from homeassistant.core import callback
-from homeassistant.const import MATCH_ALL, CONF_PLATFORM, CONF_FOR
+from homeassistant.const import CONF_FOR, CONF_PLATFORM, EVENT_STATE_CHANGED, MATCH_ALL
+from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.helpers import config_validation as cv, template
-from homeassistant.helpers.event import async_track_state_change, async_track_same_state
+from homeassistant.helpers.event import (
+    Event,
+    async_track_same_state,
+    process_state_match,
+)
 
-
-# mypy: allow-untyped-calls, allow-untyped-defs, no-check-untyped-defs
+# mypy: allow-incomplete-defs, allow-untyped-calls, allow-untyped-defs
+# mypy: no-check-untyped-defs
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -24,8 +30,8 @@ TRIGGER_SCHEMA = vol.All(
             vol.Required(CONF_PLATFORM): "state",
             vol.Required(CONF_ENTITY_ID): cv.entity_ids,
             # These are str on purpose. Want to catch YAML conversions
-            vol.Optional(CONF_FROM): str,
-            vol.Optional(CONF_TO): str,
+            vol.Optional(CONF_FROM): vol.Any(str, [str]),
+            vol.Optional(CONF_TO): vol.Any(str, [str]),
             vol.Optional(CONF_FOR): vol.Any(
                 vol.All(cv.time_period, cv.positive_timedelta),
                 cv.template,
@@ -38,8 +44,13 @@ TRIGGER_SCHEMA = vol.All(
 
 
 async def async_attach_trigger(
-    hass, config, action, automation_info, *, platform_type="state"
-):
+    hass: HomeAssistant,
+    config,
+    action,
+    automation_info,
+    *,
+    platform_type: str = "state",
+) -> CALLBACK_TYPE:
     """Listen for state changes based on configuration."""
     entity_id = config.get(CONF_ENTITY_ID)
     from_state = config.get(CONF_FROM, MATCH_ALL)
@@ -48,11 +59,31 @@ async def async_attach_trigger(
     template.attach(hass, time_delta)
     match_all = from_state == MATCH_ALL and to_state == MATCH_ALL
     unsub_track_same = {}
-    period = {}
+    period: Dict[str, timedelta] = {}
+    match_from_state = process_state_match(from_state)
+    match_to_state = process_state_match(to_state)
 
     @callback
-    def state_automation_listener(entity, from_s, to_s):
+    def state_automation_listener(event: Event):
         """Listen for state changes and calls action."""
+        entity: str = event.data["entity_id"]
+        if entity not in entity_id:
+            return
+
+        from_s = event.data.get("old_state")
+        to_s = event.data.get("new_state")
+
+        if (
+            (from_s is not None and not match_from_state(from_s.state))
+            or (to_s is not None and not match_to_state(to_s.state))
+            or (
+                not match_all
+                and from_s is not None
+                and to_s is not None
+                and from_s.state == to_s.state
+            )
+        ):
+            return
 
         @callback
         def call_action():
@@ -68,7 +99,7 @@ async def async_attach_trigger(
                             "for": time_delta if not time_delta else period[entity],
                         }
                     },
-                    context=to_s.context,
+                    context=event.context,
                 )
             )
 
@@ -113,17 +144,16 @@ async def async_attach_trigger(
             )
             return
 
+        def _check_same_state(_, _2, new_st):
+            if new_st is None:
+                return False
+            return new_st.state == to_s.state
+
         unsub_track_same[entity] = async_track_same_state(
-            hass,
-            period[entity],
-            call_action,
-            lambda _, _2, to_state: to_state.state == to_s.state,
-            entity_ids=entity,
+            hass, period[entity], call_action, _check_same_state, entity_ids=entity,
         )
 
-    unsub = async_track_state_change(
-        hass, entity_id, state_automation_listener, from_state, to_state
-    )
+    unsub = hass.bus.async_listen(EVENT_STATE_CHANGED, state_automation_listener)
 
     @callback
     def async_remove():

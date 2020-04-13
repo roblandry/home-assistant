@@ -1,8 +1,8 @@
 """Models for manifest validator."""
-import json
-from typing import List, Dict, Any
-import pathlib
 import importlib
+import json
+import pathlib
+from typing import Any, Dict, List
 
 import attr
 
@@ -17,7 +17,7 @@ class Error:
 
     def __str__(self) -> str:
         """Represent error as string."""
-        return "[{}] {}".format(self.plugin.upper(), self.error)
+        return f"[{self.plugin.upper()}] {self.error}"
 
 
 @attr.s
@@ -50,9 +50,9 @@ class Integration:
             init = fil / "__init__.py"
             if not init.exists():
                 print(
-                    "Warning: {} missing, skipping directory. "
+                    f"Warning: {init} missing, skipping directory. "
                     "If this is your development environment, "
-                    "you can safely delete this folder.".format(init)
+                    "you can safely delete this folder."
                 )
                 continue
 
@@ -70,6 +70,16 @@ class Integration:
     def domain(self) -> str:
         """Integration domain."""
         return self.path.name
+
+    @property
+    def requirements(self) -> List[str]:
+        """List of requirements."""
+        return self.manifest.get("requirements", [])
+
+    @property
+    def dependencies(self) -> List[str]:
+        """List of dependencies."""
+        return self.manifest.get("dependencies", [])
 
     def add_error(self, *args, **kwargs):
         """Add an error."""

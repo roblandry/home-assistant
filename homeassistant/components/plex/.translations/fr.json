@@ -5,6 +5,8 @@
             "already_configured": "Ce serveur Plex est d\u00e9j\u00e0 configur\u00e9",
             "already_in_progress": "Plex en cours de configuration",
             "invalid_import": "La configuration import\u00e9e est invalide",
+            "non-interactive": "Importation non interactive",
+            "token_request_timeout": "D\u00e9lai d'obtention du jeton",
             "unknown": "\u00c9chec pour une raison inconnue"
         },
         "error": {
@@ -20,14 +22,23 @@
                 "description": "Plusieurs serveurs disponibles, s\u00e9lectionnez-en un:",
                 "title": "S\u00e9lectionnez le serveur Plex"
             },
-            "user": {
-                "data": {
-                    "token": "Jeton plex"
-                },
-                "description": "Entrez un jeton Plex pour la configuration automatique.",
+            "start_website_auth": {
+                "description": "Continuer d'autoriser sur plex.tv.",
                 "title": "Connecter un serveur Plex"
             }
         },
         "title": "Plex"
+    },
+    "options": {
+        "step": {
+            "plex_mp_settings": {
+                "data": {
+                    "ignore_new_shared_users": "Ignorer les nouveaux utilisateurs g\u00e9r\u00e9s/partag\u00e9s",
+                    "monitored_users": "Utilisateurs surveill\u00e9s",
+                    "use_episode_art": "Utiliser l'art de l'\u00e9pisode"
+                },
+                "description": "Options pour lecteurs multim\u00e9dia Plex"
+            }
+        }
     }
 }

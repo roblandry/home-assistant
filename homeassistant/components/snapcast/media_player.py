@@ -2,9 +2,11 @@
 import logging
 import socket
 
+import snapcast.control
+from snapcast.control.server import CONTROL_PORT
 import voluptuous as vol
 
-from homeassistant.components.media_player import MediaPlayerDevice, PLATFORM_SCHEMA
+from homeassistant.components.media_player import PLATFORM_SCHEMA, MediaPlayerDevice
 from homeassistant.components.media_player.const import (
     SUPPORT_SELECT_SOURCE,
     SUPPORT_VOLUME_MUTE,
@@ -24,12 +26,12 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
 from . import (
-    DOMAIN,
-    SERVICE_SNAPSHOT,
-    SERVICE_RESTORE,
-    SERVICE_JOIN,
-    SERVICE_UNJOIN,
     ATTR_MASTER,
+    DOMAIN,
+    SERVICE_JOIN,
+    SERVICE_RESTORE,
+    SERVICE_SNAPSHOT,
+    SERVICE_UNJOIN,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -55,8 +57,6 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
     """Set up the Snapcast platform."""
-    import snapcast.control
-    from snapcast.control.server import CONTROL_PORT
 
     host = config.get(CONF_HOST)
     port = config.get(CONF_PORT, CONTROL_PORT)
@@ -176,17 +176,17 @@ class SnapcastGroupDevice(MediaPlayerDevice):
         streams = self._group.streams_by_name()
         if source in streams:
             await self._group.set_stream(streams[source].identifier)
-            self.async_schedule_update_ha_state()
+            self.async_write_ha_state()
 
     async def async_mute_volume(self, mute):
         """Send the mute command."""
         await self._group.set_muted(mute)
-        self.async_schedule_update_ha_state()
+        self.async_write_ha_state()
 
     async def async_set_volume_level(self, volume):
         """Set the volume level."""
         await self._group.set_volume(round(volume * 100))
-        self.async_schedule_update_ha_state()
+        self.async_write_ha_state()
 
     def snapshot(self):
         """Snapshot the group state."""
@@ -273,17 +273,17 @@ class SnapcastClientDevice(MediaPlayerDevice):
         streams = self._client.group.streams_by_name()
         if source in streams:
             await self._client.group.set_stream(streams[source].identifier)
-            self.async_schedule_update_ha_state()
+            self.async_write_ha_state()
 
     async def async_mute_volume(self, mute):
         """Send the mute command."""
         await self._client.set_muted(mute)
-        self.async_schedule_update_ha_state()
+        self.async_write_ha_state()
 
     async def async_set_volume_level(self, volume):
         """Set the volume level."""
         await self._client.set_volume(round(volume * 100))
-        self.async_schedule_update_ha_state()
+        self.async_write_ha_state()
 
     async def async_join(self, master):
         """Join the group of the master player."""
@@ -293,12 +293,12 @@ class SnapcastClientDevice(MediaPlayerDevice):
             if master.identifier in group.clients
         ]
         await master_group[0].add_client(self._client.identifier)
-        self.async_schedule_update_ha_state()
+        self.async_write_ha_state()
 
     async def async_unjoin(self):
         """Unjoin the group the player is currently in."""
         await self._client.group.remove_client(self._client.identifier)
-        self.async_schedule_update_ha_state()
+        self.async_write_ha_state()
 
     def snapshot(self):
         """Snapshot the client state."""

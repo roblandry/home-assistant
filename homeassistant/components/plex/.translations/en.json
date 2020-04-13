@@ -5,25 +5,16 @@
             "already_configured": "This Plex server is already configured",
             "already_in_progress": "Plex is being configured",
             "invalid_import": "Imported configuration is invalid",
+            "non-interactive": "Non-interactive import",
+            "token_request_timeout": "Timed out obtaining token",
             "unknown": "Failed for unknown reason"
         },
         "error": {
             "faulty_credentials": "Authorization failed",
             "no_servers": "No servers linked to account",
-            "no_token": "Provide a token or select manual setup",
             "not_found": "Plex server not found"
         },
         "step": {
-            "manual_setup": {
-                "data": {
-                    "host": "Host",
-                    "port": "Port",
-                    "ssl": "Use SSL",
-                    "token": "Token (if required)",
-                    "verify_ssl": "Verify SSL certificate"
-                },
-                "title": "Plex server"
-            },
             "select_server": {
                 "data": {
                     "server": "Server"
@@ -31,15 +22,23 @@
                 "description": "Multiple servers available, select one:",
                 "title": "Select Plex server"
             },
-            "user": {
-                "data": {
-                    "manual_setup": "Manual setup",
-                    "token": "Plex token"
-                },
-                "description": "Enter a Plex token for automatic setup or manually configure a server.",
+            "start_website_auth": {
+                "description": "Continue to authorize at plex.tv.",
                 "title": "Connect Plex server"
             }
         },
         "title": "Plex"
+    },
+    "options": {
+        "step": {
+            "plex_mp_settings": {
+                "data": {
+                    "ignore_new_shared_users": "Ignore new managed/shared users",
+                    "monitored_users": "Monitored users",
+                    "use_episode_art": "Use episode art"
+                },
+                "description": "Options for Plex Media Players"
+            }
+        }
     }
 }

@@ -121,7 +121,9 @@ async def async_setup_entry(hass, entry):
     if config.get(CONF_DISCOVERY, DEFAULT_DISCOVERY):
         _LOGGER.debug("Scanning network for WeMo devices...")
         for device in await hass.async_add_executor_job(pywemo.discover_devices):
-            devices.setdefault(device.serialnumber, device)
+            devices.setdefault(
+                device.serialnumber, device,
+            )
 
     loaded_components = set()
 
@@ -151,7 +153,9 @@ async def async_setup_entry(hass, entry):
             hass.data[DOMAIN]["pending"][component].append(device)
 
         else:
-            async_dispatcher_send(hass, f"{DOMAIN}.{component}", device)
+            async_dispatcher_send(
+                hass, f"{DOMAIN}.{component}", device,
+            )
 
     return True
 
@@ -169,7 +173,7 @@ def validate_static_config(host, port):
 
     try:
         device = pywemo.discovery.device_from_description(url, None)
-    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as err:
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout,) as err:
         _LOGGER.error("Unable to access WeMo at %s (%s)", url, err)
         return None
 

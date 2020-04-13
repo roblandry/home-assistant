@@ -1,6 +1,7 @@
 """Support for the Daikin HVAC."""
 import logging
 
+from pydaikin import appliance
 import voluptuous as vol
 
 from homeassistant.components.climate import PLATFORM_SCHEMA, ClimateDevice
@@ -77,7 +78,6 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
     Can only be called when a user accidentally mentions the platform in their
     config. But even in that case it would have been ignored.
     """
-    pass
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
@@ -91,7 +91,6 @@ class DaikinClimate(ClimateDevice):
 
     def __init__(self, api):
         """Initialize the climate device."""
-        from pydaikin import appliance
 
         self._api = api
         self._list = {

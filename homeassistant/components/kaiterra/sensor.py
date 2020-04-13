@@ -1,11 +1,9 @@
 """Support for Kaiterra Temperature ahn Humidity Sensors."""
+from homeassistant.const import CONF_DEVICE_ID, CONF_NAME, TEMP_CELSIUS, TEMP_FAHRENHEIT
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import Entity
 
-from homeassistant.helpers.dispatcher import async_dispatcher_connect
-
-from homeassistant.const import CONF_DEVICE_ID, CONF_NAME, TEMP_CELSIUS, TEMP_FAHRENHEIT
-
-from .const import DOMAIN, DISPATCHER_KAITERRA
+from .const import DISPATCHER_KAITERRA, DOMAIN
 
 SENSORS = [
     {"name": "Temperature", "prop": "rtemp", "device_class": "temperature"},
@@ -90,6 +88,8 @@ class KaiterraSensor(Entity):
 
     async def async_added_to_hass(self):
         """Register callback."""
-        async_dispatcher_connect(
-            self.hass, DISPATCHER_KAITERRA, self.async_write_ha_state
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass, DISPATCHER_KAITERRA, self.async_write_ha_state
+            )
         )

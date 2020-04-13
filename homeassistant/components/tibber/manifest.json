@@ -1,12 +1,8 @@
 {
   "domain": "tibber",
   "name": "Tibber",
-  "documentation": "https://www.home-assistant.io/components/tibber",
-  "requirements": [
-    "pyTibber==0.11.7"
-  ],
-  "dependencies": [],
-  "codeowners": [
-    "@danielhiversen"
-  ]
+  "documentation": "https://www.home-assistant.io/integrations/tibber",
+  "requirements": ["pyTibber==0.13.6"],
+  "codeowners": ["@danielhiversen"],
+  "quality_scale": "silver"
 }

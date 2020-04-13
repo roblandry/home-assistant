@@ -1,6 +1,11 @@
 """Monitor the NZBGet API."""
 import logging
 
+from homeassistant.const import (
+    DATA_MEGABYTES,
+    DATA_RATE_MEGABYTES_PER_SECOND,
+    TIME_MINUTES,
+)
 from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import Entity
@@ -12,15 +17,20 @@ _LOGGER = logging.getLogger(__name__)
 DEFAULT_NAME = "NZBGet"
 
 SENSOR_TYPES = {
-    "article_cache": ["ArticleCacheMB", "Article Cache", "MB"],
-    "average_download_rate": ["AverageDownloadRate", "Average Speed", "MB/s"],
+    "article_cache": ["ArticleCacheMB", "Article Cache", DATA_MEGABYTES],
+    "average_download_rate": [
+        "AverageDownloadRate",
+        "Average Speed",
+        DATA_RATE_MEGABYTES_PER_SECOND,
+    ],
     "download_paused": ["DownloadPaused", "Download Paused", None],
-    "download_rate": ["DownloadRate", "Speed", "MB/s"],
-    "download_size": ["DownloadedSizeMB", "Size", "MB"],
-    "free_disk_space": ["FreeDiskSpaceMB", "Disk Free", "MB"],
+    "download_rate": ["DownloadRate", "Speed", DATA_RATE_MEGABYTES_PER_SECOND],
+    "download_size": ["DownloadedSizeMB", "Size", DATA_MEGABYTES],
+    "free_disk_space": ["FreeDiskSpaceMB", "Disk Free", DATA_MEGABYTES],
+    "post_job_count": ["PostJobCount", "Post Processing Jobs", "Jobs"],
     "post_paused": ["PostPaused", "Post Processing Paused", None],
-    "remaining_size": ["RemainingSizeMB", "Queue Size", "MB"],
-    "uptime": ["UpTimeSec", "Uptime", "min"],
+    "remaining_size": ["RemainingSizeMB", "Queue Size", DATA_MEGABYTES],
+    "uptime": ["UpTimeSec", "Uptime", TIME_MINUTES],
 }
 
 
@@ -34,9 +44,9 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     name = discovery_info["client_name"]
 
     devices = []
-    for sensor_type, sensor_config in SENSOR_TYPES.items():
+    for sensor_config in SENSOR_TYPES.values():
         new_sensor = NZBGetSensor(
-            nzbget_data, sensor_type, name, sensor_config[0], sensor_config[1]
+            nzbget_data, sensor_config[0], name, sensor_config[1], sensor_config[2]
         )
         devices.append(new_sensor)
 
@@ -50,8 +60,8 @@ class NZBGetSensor(Entity):
         self, nzbget_data, sensor_type, client_name, sensor_name, unit_of_measurement
     ):
         """Initialize a new NZBGet sensor."""
-        self._name = f"{client_name} {sensor_type}"
-        self.type = sensor_name
+        self._name = f"{client_name} {sensor_name}"
+        self.type = sensor_type
         self.client_name = client_name
         self.nzbget_data = nzbget_data
         self._state = None
@@ -79,8 +89,10 @@ class NZBGetSensor(Entity):
 
     async def async_added_to_hass(self):
         """Handle entity which will be added."""
-        async_dispatcher_connect(
-            self.hass, DATA_UPDATED, self._schedule_immediate_update
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass, DATA_UPDATED, self._schedule_immediate_update
+            )
         )
 
     @callback

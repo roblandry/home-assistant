@@ -6,8 +6,6 @@ from asynctest import Mock, patch
 from pysmartthings import APIResponseError
 
 from homeassistant import data_entry_flow
-from homeassistant.setup import async_setup_component
-from homeassistant.components import cloud
 from homeassistant.components.smartthings import smartapp
 from homeassistant.components.smartthings.config_flow import SmartThingsFlowHandler
 from homeassistant.components.smartthings.const import (
@@ -17,8 +15,10 @@ from homeassistant.components.smartthings.const import (
     CONF_REFRESH_TOKEN,
     DOMAIN,
 )
+from homeassistant.const import HTTP_FORBIDDEN, HTTP_NOT_FOUND
+from homeassistant.setup import async_setup_component
 
-from tests.common import MockConfigEntry
+from tests.common import MockConfigEntry, mock_coro
 
 
 async def test_step_user(hass):
@@ -103,7 +103,7 @@ async def test_token_forbidden(hass, smartthings_mock):
 
     request_info = Mock(real_url="http://example.com")
     smartthings_mock.apps.side_effect = ClientResponseError(
-        request_info=request_info, history=None, status=403
+        request_info=request_info, history=None, status=HTTP_FORBIDDEN
     )
 
     result = await flow.async_step_user({"access_token": str(uuid4())})
@@ -161,7 +161,7 @@ async def test_unknown_api_error(hass, smartthings_mock):
 
     request_info = Mock(real_url="http://example.com")
     smartthings_mock.apps.side_effect = ClientResponseError(
-        request_info=request_info, history=None, status=404
+        request_info=request_info, history=None, status=HTTP_NOT_FOUND
     )
 
     result = await flow.async_step_user({"access_token": str(uuid4())})
@@ -205,13 +205,17 @@ async def test_cloudhook_app_created_then_show_wait_form(
     hass, app, app_oauth_client, smartthings_mock
 ):
     """Test SmartApp is created with a cloudhoko and shows wait form."""
+    hass.config.components.add("cloud")
+
     # Unload the endpoint so we can reload it under the cloud.
     await smartapp.unload_smartapp_endpoint(hass)
 
     with patch.object(
-        cloud, "async_active_subscription", return_value=True
+        hass.components.cloud, "async_active_subscription", return_value=True
     ), patch.object(
-        cloud, "async_create_cloudhook", return_value="http://cloud.test"
+        hass.components.cloud,
+        "async_create_cloudhook",
+        return_value=mock_coro("http://cloud.test"),
     ) as mock_create_cloudhook:
 
         await smartapp.setup_smartapp_endpoint(hass)

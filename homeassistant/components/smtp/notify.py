@@ -10,6 +10,13 @@ import smtplib
 
 import voluptuous as vol
 
+from homeassistant.components.notify import (
+    ATTR_DATA,
+    ATTR_TITLE,
+    ATTR_TITLE_DEFAULT,
+    PLATFORM_SCHEMA,
+    BaseNotificationService,
+)
 from homeassistant.const import (
     CONF_PASSWORD,
     CONF_PORT,
@@ -20,14 +27,6 @@ from homeassistant.const import (
 )
 import homeassistant.helpers.config_validation as cv
 import homeassistant.util.dt as dt_util
-
-from homeassistant.components.notify import (
-    ATTR_DATA,
-    ATTR_TITLE,
-    ATTR_TITLE_DEFAULT,
-    PLATFORM_SCHEMA,
-    BaseNotificationService,
-)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -136,16 +135,15 @@ class MailNotificationService(BaseNotificationService):
         server = None
         try:
             server = self.connect()
-        except smtplib.socket.gaierror:
+        except (smtplib.socket.gaierror, ConnectionRefusedError):
             _LOGGER.exception(
-                "SMTP server not found (%s:%s). "
-                "Please check the IP address or hostname of your SMTP server",
+                "SMTP server not found or refused connection (%s:%s). "
+                "Please check the IP address, hostname, and availability of your SMTP server.",
                 self._server,
                 self._port,
             )
-            return False
 
-        except (smtplib.SMTPAuthenticationError, ConnectionRefusedError):
+        except smtplib.SMTPAuthenticationError:
             _LOGGER.exception(
                 "Login not possible. "
                 "Please check your setting and/or your credentials"
@@ -185,7 +183,7 @@ class MailNotificationService(BaseNotificationService):
             msg["From"] = f"{self._sender_name} <{self._sender}>"
         else:
             msg["From"] = self._sender
-        msg["X-Mailer"] = "HomeAssistant"
+        msg["X-Mailer"] = "Home Assistant"
         msg["Date"] = email.utils.format_datetime(dt_util.now())
         msg["Message-Id"] = email.utils.make_msgid()
 

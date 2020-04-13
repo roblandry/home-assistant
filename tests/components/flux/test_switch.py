@@ -2,22 +2,24 @@
 from asynctest.mock import patch
 import pytest
 
-from homeassistant.setup import async_setup_component
-from homeassistant.components import switch, light
+from homeassistant.components import light, switch
 from homeassistant.const import (
+    ATTR_ENTITY_ID,
     CONF_PLATFORM,
-    STATE_ON,
     SERVICE_TURN_ON,
+    STATE_ON,
     SUN_EVENT_SUNRISE,
 )
+from homeassistant.core import State
+from homeassistant.setup import async_setup_component
 import homeassistant.util.dt as dt_util
 
 from tests.common import (
     assert_setup_component,
     async_fire_time_changed,
     async_mock_service,
+    mock_restore_cache,
 )
-from tests.components.light import common as common_light
 from tests.components.switch import common
 
 
@@ -34,6 +36,52 @@ async def test_valid_config(hass):
             }
         },
     )
+
+    state = hass.states.get("switch.flux")
+    assert state
+    assert state.state == "off"
+
+
+async def test_restore_state_last_on(hass):
+    """Test restoring state when the last state is on."""
+    mock_restore_cache(hass, [State("switch.flux", "on")])
+
+    assert await async_setup_component(
+        hass,
+        "switch",
+        {
+            "switch": {
+                "platform": "flux",
+                "name": "flux",
+                "lights": ["light.desk", "light.lamp"],
+            }
+        },
+    )
+
+    state = hass.states.get("switch.flux")
+    assert state
+    assert state.state == "on"
+
+
+async def test_restore_state_last_off(hass):
+    """Test restoring state when the last state is off."""
+    mock_restore_cache(hass, [State("switch.flux", "off")])
+
+    assert await async_setup_component(
+        hass,
+        "switch",
+        {
+            "switch": {
+                "platform": "flux",
+                "name": "flux",
+                "lights": ["light.desk", "light.lamp"],
+            }
+        },
+    )
+
+    state = hass.states.get("switch.flux")
+    assert state
+    assert state.state == "off"
 
 
 async def test_valid_config_with_info(hass):
@@ -849,9 +897,13 @@ async def test_flux_with_multiple_lights(hass):
     )
 
     ent1, ent2, ent3 = platform.ENTITIES
-    common_light.turn_on(hass, entity_id=ent2.entity_id)
-    await hass.async_block_till_done()
-    common_light.turn_on(hass, entity_id=ent3.entity_id)
+
+    await hass.services.async_call(
+        light.DOMAIN, SERVICE_TURN_ON, {ATTR_ENTITY_ID: ent2.entity_id}, blocking=True
+    )
+    await hass.services.async_call(
+        light.DOMAIN, SERVICE_TURN_ON, {ATTR_ENTITY_ID: ent3.entity_id}, blocking=True
+    )
     await hass.async_block_till_done()
 
     state = hass.states.get(ent1.entity_id)
@@ -875,9 +927,9 @@ async def test_flux_with_multiple_lights(hass):
 
     def event_date(hass, event, now=None):
         if event == SUN_EVENT_SUNRISE:
-            print("sunrise {}".format(sunrise_time))
+            print(f"sunrise {sunrise_time}")
             return sunrise_time
-        print("sunset {}".format(sunset_time))
+        print(f"sunset {sunset_time}")
         return sunset_time
 
     with patch(

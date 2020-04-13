@@ -1,11 +1,12 @@
 """Support for displaying the current CPU speed."""
 import logging
 
+from cpuinfo import cpuinfo
 import voluptuous as vol
 
-import homeassistant.helpers.config_validation as cv
 from homeassistant.components.sensor import PLATFORM_SCHEMA
-from homeassistant.const import CONF_NAME
+from homeassistant.const import CONF_NAME, FREQUENCY_GIGAHERTZ
+import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entity import Entity
 
 _LOGGER = logging.getLogger(__name__)
@@ -41,7 +42,6 @@ class CpuSpeedSensor(Entity):
         self._name = name
         self._state = None
         self.info = None
-        self._unit_of_measurement = "GHz"
 
     @property
     def name(self):
@@ -56,7 +56,7 @@ class CpuSpeedSensor(Entity):
     @property
     def unit_of_measurement(self):
         """Return the unit the value is expressed in."""
-        return self._unit_of_measurement
+        return FREQUENCY_GIGAHERTZ
 
     @property
     def device_state_attributes(self):
@@ -75,7 +75,6 @@ class CpuSpeedSensor(Entity):
 
     def update(self):
         """Get the latest data and updates the state."""
-        from cpuinfo import cpuinfo
 
         self.info = cpuinfo.get_cpu_info()
         if HZ_ACTUAL_RAW in self.info:
